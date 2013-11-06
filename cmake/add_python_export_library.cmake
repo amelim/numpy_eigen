@@ -15,7 +15,15 @@
 
 MACRO(add_python_export_library TARGET_NAME PYTHON_MODULE_DIRECTORY )
 
-  rosbuild_add_boost_directories()
+
+  # Boost
+  find_package(Boost COMPONENTS python filesystem system REQUIRED)
+  include_directories(${Boost_INCLUDE_DIRS})
+  list(APPEND library_deps
+    ${Boost_SERIALIZATION_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+  ${Boost_FILESYSTEM_LIBRARY})
+
   # Find Python
   FIND_PACKAGE(PythonLibs 2.7 REQUIRED)
   INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_DIRS})
@@ -41,19 +49,16 @@ MACRO(add_python_export_library TARGET_NAME PYTHON_MODULE_DIRECTORY )
   ENDIF(APPLE)
 
 
-  # message("Target files: ${ARGN}")
-  # Create the target and assign source files
-  rosbuild_add_library( ${TARGET_NAME}
-      ${ARGN}
-    )
+  # Create a static library version
+  add_library(${TARGET_NAME} SHARED ${ARGN})
 
-  # Link your python project to the main library and to Python
-  target_link_libraries( ${TARGET_NAME}
-    ${PYTHON_LIBRARY}
-    )
+  target_link_libraries(${TARGET_NAME} ${Boost_PYTHON_LIBRARY} ${PYTHON_LIBRARY})
+      set_target_properties(${TARGET_NAME} PROPERTIES 
+          OUTPUT_NAME         ${TARGET_NAME}
+          CLEAN_DIRECT_OUTPUT 1
+          VERSION             1
+          SOVERSION           0)
 
-  # Link against boost::python
-  rosbuild_link_boost(${TARGET_NAME} python )
 
   # On OSX and Linux, the python library must end in the extension .so. Build this
   # filename here.
